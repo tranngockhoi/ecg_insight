@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17517e">
+<title>ECG Insight</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --paper:#f4f6f4; --surface:#ffffff; --ink:#122033; --ink2:#4a5a6b; --ink3:#788694;
+  --line:#dde3e0; --line2:#c4cec9; --grid1:rgba(18,32,51,.05); --grid5:rgba(18,32,51,.10);
+  --brand:#17517e; --brand-ink:#fff; --brand-soft:#e6eef5;
+  --high:#c0302a; --mid:#b3741a; --low:#8493a0; --ok:#2b7a57; --focus:#2a7fc1;
+  --high-soft:#fbeceb; --mid-soft:#fbf1e2; --ok-soft:#e5f2ec;
+  --font:"SF Pro Text","Avenir Next","Segoe UI",Roboto,"Helvetica Neue",Arial,system-ui,sans-serif;
+}
+:root[data-theme="dark"]{
+  --paper:#0d1620; --surface:#142030; --ink:#e8eef4; --ink2:#a6b4c2; --ink3:#7b8a99;
+  --line:#243548; --line2:#344a60; --grid1:rgba(200,220,240,.05); --grid5:rgba(200,220,240,.10);
+  --brand:#5ba4dd; --brand-ink:#08131d; --brand-soft:#17293b;
+  --high:#ff7068; --mid:#e3a64c; --low:#7b8a99; --ok:#4cc08b; --focus:#6bb4ee;
+  --high-soft:#33191b; --mid-soft:#2f2415; --ok-soft:#14291f;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0d1620; --surface:#142030; --ink:#e8eef4; --ink2:#a6b4c2; --ink3:#7b8a99;
+    --line:#243548; --line2:#344a60; --grid1:rgba(200,220,240,.05); --grid5:rgba(200,220,240,.10);
+    --brand:#5ba4dd; --brand-ink:#08131d; --brand-soft:#17293b;
+    --high:#ff7068; --mid:#e3a64c; --low:#7b8a99; --ok:#4cc08b; --focus:#6bb4ee;
+    --high-soft:#33191b; --mid-soft:#2f2415; --ok-soft:#14291f;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--paper)}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);font-variant-numeric:tabular-nums}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+.hidden{display:none!important}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+
+/* ---------- thanh trên ---------- */
+.top{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.top .wrap{display:flex;align-items:center;gap:14px;height:58px}
+.brand{display:flex;align-items:center;gap:11px;cursor:pointer;background:none;border:0;padding:0;text-align:left}
+.mark{width:34px;height:34px;border-radius:7px;background:var(--brand);display:grid;place-items:center;flex:none}
+.mark svg{width:22px;height:22px}.mark path{fill:none;stroke:var(--brand-ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.brand .tx2{display:block}
+.brand b{display:block;font-size:16px;font-weight:650;letter-spacing:.1px;line-height:1.15;color:var(--ink)}
+.brand small{display:block;font-size:12px;color:var(--ink3);line-height:1.2}
+.grow{flex:1}
+.status{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
+.status i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+.iconbtn{height:34px;min-width:34px;padding:0 11px;border:1px solid var(--line);background:var(--surface);border-radius:6px;cursor:pointer;color:var(--ink2);font-size:13px;display:inline-flex;align-items:center;gap:7px;justify-content:center}
+.iconbtn:hover{border-color:var(--line2);color:var(--ink)}
+.iconbtn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- nút ---------- */
+.btn{height:42px;padding:0 18px;border-radius:6px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center;font-size:14.5px}
+.btn:hover{border-color:var(--ink3)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{height:34px;padding:0 13px;font-size:13.5px}
+.btn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.link{background:none;border:0;padding:0;color:var(--brand);cursor:pointer;text-decoration:underline;text-underline-offset:2px;font-size:inherit}
+
+/* ---------- mở khoá ---------- */
+.lock{max-width:440px;margin:80px auto;padding:0 16px;text-align:center}
+.lock .ic{width:48px;height:48px;border-radius:10px;background:var(--brand-soft);display:grid;place-items:center;margin:0 auto 16px}
+.lock .ic svg{width:24px;height:24px;stroke:var(--brand);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lock h1{font-size:22px;font-weight:660;letter-spacing:-.2px}
+.lock p{color:var(--ink2);margin-top:8px;font-size:14.5px}
+.lock input{width:100%;height:46px;margin-top:18px;border:1px solid var(--line2);border-radius:6px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px;padding:0 14px;text-align:center}
+.lock .btn{width:100%;margin-top:12px}
+.prog{height:6px;border-radius:3px;background:var(--line);margin-top:18px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s}
+.lock .pt{font-size:13px;color:var(--ink3);margin-top:8px}
+
+/* ---------- trang chủ ---------- */
+.home{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:28px;padding:34px 0 40px;align-items:start}
+.intro h1{font-size:clamp(26px,3.2vw,36px);line-height:1.15;font-weight:680;letter-spacing:-.4px;max-width:20em}
+.intro p{color:var(--ink2);max-width:36em;margin-top:10px;font-size:15.5px}
+.paperdrop{margin-top:24px;border:1.5px dashed var(--line2);border-radius:8px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px 20px;text-align:center;
+  background-color:var(--surface);
+  background-image:linear-gradient(var(--grid5) 1px,transparent 1px),linear-gradient(90deg,var(--grid5) 1px,transparent 1px),linear-gradient(var(--grid1) 1px,transparent 1px),linear-gradient(90deg,var(--grid1) 1px,transparent 1px);
+  background-size:40px 40px,40px 40px,8px 8px,8px 8px;background-position:-1px -1px}
+.paperdrop.on{border-color:var(--brand);background-color:var(--brand-soft)}
+.paperdrop .dd{background:var(--surface);padding:14px 20px;border-radius:8px;border:1px solid var(--line)}
+.paperdrop .dd b{display:block;font-size:17px;font-weight:650}
+.paperdrop .dd span{display:block;color:var(--ink2);font-size:13.5px;margin-top:3px}
+.paperdrop .acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.cam-only{display:none}
+@media (pointer:coarse){.cam-only{display:inline-flex}.paste-hint{display:none}}
+.side{display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+.panel h3{font-size:13.5px;font-weight:650;color:var(--ink);margin-bottom:10px}
+.panel .sub{color:var(--ink3);font-weight:500;margin-left:6px}
+.qr{display:flex;gap:16px;align-items:center}
+.qr img{width:112px;height:112px;border-radius:6px;border:1px solid var(--line);background:#fff;padding:4px}
+.qr p{font-size:13.5px;color:var(--ink2);line-height:1.5}.qr b{color:var(--ink);word-break:break-all}
+.how{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--ink2)}
+.how li{display:flex;gap:10px}.how li::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--brand);margin-top:8px}
+.hist{display:flex;flex-direction:column}
+.hrow{display:flex;gap:12px;align-items:center;padding:9px 0;border-top:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left;width:100%}
+.hrow:first-child{border-top:0}
+.hrow img{width:64px;height:40px;object-fit:cover;border:1px solid var(--line);border-radius:4px;background:#fff;flex:none}
+.hrow div{min-width:0;flex:1}.hrow b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow span{font-size:12.5px;color:var(--ink3)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;flex:none}
+
+/* ---------- xem trước ---------- */
+.pv{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:28px;padding:30px 0 40px;align-items:start}
+.pvimg{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.pvimg img{display:block;width:100%;max-height:70vh;object-fit:contain}
+.pv h2{font-size:21px;font-weight:660;letter-spacing:-.2px;margin-bottom:14px}
+.checks{margin:0 0 16px;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.checks li{display:flex;gap:10px;align-items:flex-start;color:var(--ink2)}
+.checks .dot{margin-top:7px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- đang phân tích ---------- */
+.load{max-width:560px;margin:90px auto;text-align:center;padding:0 16px}
+.load svg{width:100%;height:84px}
+.load path{fill:none;stroke:var(--brand);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1000;stroke-dashoffset:1000;animation:trace 2.2s linear infinite}
+@keyframes trace{to{stroke-dashoffset:0}}
+.load h2{font-size:19px;font-weight:650;margin-top:16px}
+.load p{color:var(--ink2);margin-top:6px;font-size:14px}
+@media (prefers-reduced-motion:reduce){.load path{animation:none;stroke-dashoffset:0}}
+
+/* ---------- kết quả ---------- */
+.rhead{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;padding:28px 0 14px}
+.rhead h1{font-size:13px;font-weight:650;color:var(--ink3);letter-spacing:.2px}
+.rhead .meta{font-size:12.5px;color:var(--ink3);margin-top:3px}
+.rhead .acts{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.impr{padding:4px 0 22px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.impr .hl{font-size:clamp(22px,2.7vw,30px);line-height:1.22;font-weight:660;letter-spacing:-.4px;max-width:30em;display:flex;gap:14px;align-items:flex-start}
+.impr .bar{flex:none;width:5px;align-self:stretch;border-radius:3px;background:var(--low)}
+.impr.abnormal .bar{background:var(--high)}.impr.normal .bar{background:var(--ok)}
+.impr .tx{padding-top:1px}
+.impr p{color:var(--ink2);margin-top:8px;font-size:15px;max-width:46em}
+.impr p.fine{font-size:13px;color:var(--ink3);margin-top:6px}
+.main{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:26px;align-items:start}
+.sheet{position:sticky;top:76px;background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--brand);color:var(--brand-ink)}
+.tools label{font-size:13px;color:var(--ink2);display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.tools input[type=range]{width:96px;accent-color:var(--brand)}
+.tools .sp{flex:1}
+.viewer{position:relative;margin:12px;border:1px solid var(--line);background:#fff;cursor:zoom-in;line-height:0;
+  background-image:linear-gradient(rgba(18,32,51,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(18,32,51,.08) 1px,transparent 1px);background-size:20px 20px}
+.viewer img{display:block;width:100%}
+.viewer .ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.viewer .heat{transition:opacity .18s}
+.cap{padding:0 14px 14px;font-size:13px;color:var(--ink2);min-height:34px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cap b{color:var(--ink);font-weight:650}
+.cap .busy{color:var(--ink3)}
+.scalebar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink3)}
+.scalebar i{display:block;width:90px;height:7px;border-radius:2px;background:linear-gradient(90deg,rgba(255,214,10,.15),rgb(255,138,0),rgb(200,30,40))}
+
+.ladder{min-width:0}
+.lt{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.search{flex:1;min-width:160px;position:relative}
+.search input{width:100%;height:36px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);border-radius:6px;padding:0 12px 0 34px;font:inherit;font-size:14px}
+.search svg{position:absolute;left:10px;top:9px;width:17px;height:17px;stroke:var(--ink3);fill:none;stroke-width:1.8;stroke-linecap:round}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line2);background:var(--surface);color:var(--ink2);border-radius:99px;padding:4px 12px;font-size:13px;cursor:pointer;font-weight:550}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.count{font-size:12.5px;color:var(--ink3);margin:0 0 6px}
+.axis,.row .rtop{display:grid;grid-template-columns:minmax(0,1fr) 168px 38px;gap:12px;align-items:center}
+.axis{font-size:11.5px;color:var(--ink3);padding:0 8px 5px 10px;border-bottom:1px solid var(--line2)}
+.axis .ax{position:relative;height:14px}
+.axis .ax span{position:absolute;top:0;transform:translateX(-50%)}
+.axis .ax span:first-child{transform:none}.axis .ax span:last-child{transform:translateX(-100%)}
+ul.rows{list-style:none;margin:0;padding:0}
+.gh{font-size:12.5px;font-weight:650;color:var(--ink);padding:16px 10px 4px;border-bottom:1px solid var(--line)}
+.row{border-bottom:1px solid var(--line)}
+.row .rtop{width:100%;background:none;border:0;padding:9px 8px 9px 10px;cursor:pointer;text-align:left}
+.row .rtop:hover{background:var(--brand-soft)}
+.row.sel .rtop{background:var(--brand-soft);box-shadow:inset 3px 0 0 var(--brand)}
+.rname b{display:block;font-size:14px;font-weight:600;line-height:1.3}
+.rname small{display:block;font-size:12px;color:var(--ink3);line-height:1.35;margin-top:1px}
+.sc{position:relative;height:6px;background:var(--line);border-radius:3px}
+.sc .f{position:absolute;left:0;top:0;bottom:0;border-radius:3px;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+.sc .t{position:absolute;top:-4px;width:1px;height:14px;background:var(--ink3);opacity:.5}
+.rnum{font-size:16px;font-weight:700;text-align:right}
+.row .rmore{display:none;padding:2px 8px 14px 10px;font-size:13.5px;color:var(--ink2);line-height:1.55}
+.row.open .rmore{display:block}
+.rmore .rel{margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--ink2)}
+.rmore .rel b{color:var(--ink);font-weight:650}
+.tag{font-size:11.5px;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;color:var(--ink2);white-space:nowrap}
+.tag.warn{border-color:var(--mid);color:var(--mid)}
+.empty{padding:26px 4px;color:var(--ink3);font-size:14px}
+
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:30px;padding-bottom:20px}
+.lower h2{font-size:14px;font-weight:650;margin-bottom:10px}
+.qhead{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.qhead b{font-size:26px;font-weight:700}.qhead span{color:var(--ink3);font-size:13px}
+.ql{list-style:none;margin:0;padding:0;font-size:13.5px}
+.ql li{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:7px 0;border-top:1px solid var(--line);color:var(--ink2)}
+.ql li b{color:var(--ink);font-weight:600;display:flex;align-items:center;gap:7px}
+.notes{font-size:13.5px;color:var(--ink2);line-height:1.6}
+.notes p+p{margin-top:8px}
+
+.rej{max-width:640px;margin:60px auto;padding:0 16px}
+.rej h1{font-size:26px;line-height:1.2;font-weight:680;letter-spacing:-.3px}
+.rej p{margin-top:10px;color:var(--ink2)}
+.rej .pic{margin:20px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.rej .pic img{display:block;width:100%;max-height:300px;object-fit:contain}
+
+footer{border-top:1px solid var(--line);margin-top:20px;padding:16px 0 28px;font-size:12.5px;color:var(--ink3);line-height:1.6}
+
+dialog{border:1px solid var(--line2);border-radius:10px;padding:0;background:var(--surface);color:var(--ink);max-width:620px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(8,16,28,.55)}
+dialog .dh{display:flex;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+dialog .dh h2{font-size:16px;font-weight:650;flex:1}
+dialog .db{padding:16px 20px 20px;font-size:14px;color:var(--ink2);line-height:1.6;max-height:70vh;overflow:auto}
+dialog .db h3{font-size:13.5px;color:var(--ink);margin:14px 0 4px}
+dialog .db h3:first-child{margin-top:0}
+dialog .db ul{margin:4px 0 0;padding-left:18px}
+.zoom{max-width:none;width:100vw;height:100vh;max-height:none;border-radius:0;border:0;background:#0b121b}
+.zoom .dh{background:#0b121b;border-color:#223244;color:#fff}
+.zoom .zs{overflow:auto;height:calc(100vh - 62px);background:#0b121b}
+.zoom .zb{position:relative;width:240vw;max-width:2600px;background:#fff;line-height:0}
+.zoom .zb img{display:block;width:100%}.zoom .zb .ov{position:absolute;inset:0}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translate(-50%,30px);background:var(--ink);color:var(--paper);padding:11px 16px;border-radius:7px;font-size:14px;opacity:0;transition:.25s;z-index:60;max-width:90vw;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+.printhead{display:none}
+
+@media (max-width:980px){
+  .home,.pv,.main,.lower{grid-template-columns:1fr}
+  .sheet{position:static}
+  .wrap{padding:0 16px}
+  .home{padding-top:22px}
+}
+@media (max-width:560px){
+  .axis{display:none}
+  .row .rtop{grid-template-columns:minmax(0,1fr) 38px;row-gap:6px}
+  .row .rtop .sc{grid-column:1 / -1;grid-row:2}
+  .status span{display:none}
+  .brand small{display:none}
+  .rhead .acts{margin-left:0}
+}
+@media print{
+  @page{margin:14mm}
+  html,body{background:#fff!important;color:#000}
+  .top,.rhead .acts,.tools,.lt,.chips,footer,.toast,.cap .scalebar,.row .rtop:hover,#hist,.axis{display:none!important}
+  .printhead{display:block;border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:10px;font-size:12px}
+  .printhead b{font-size:16px}
+  .main{grid-template-columns:1fr 1fr;gap:14px}.sheet{position:static;border:0}
+  .row .rmore{display:none!important}.row{break-inside:avoid}
+  .impr .hl{font-size:20px}.lower{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <button class="brand" id="brand" aria-label="Về trang đầu">
+      <span class="mark"><svg viewBox="0 0 24 24"><path d="M1.5 13h5l2.2-6 3.6 12 2.4-8 1.5 2h6.3"/></svg></span>
+      <span class="tx2"><b>ECG Insight</b><small>Đọc điện tâm đồ từ ảnh chụp</small></span>
+    </button>
+    <div class="grow"></div>
+    <div class="status" id="status"><i></i><span id="statusTxt">Mô hình chưa mở</span></div>
+    <button class="iconbtn" id="btnAbout" aria-label="Về mô hình"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>Về mô hình</button>
+    <button class="iconbtn" id="btnTheme" aria-label="Đổi giao diện sáng/tối"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- ============ MỞ KHOÁ ============ -->
+  <section id="lock" class="lock">
+    <div class="ic"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+    <h1 id="lkTitle">Đang kiểm tra mô hình</h1>
+    <p id="lkMsg">Chờ một chút.</p>
+    <div id="lkForm" class="hidden">
+      <input type="password" id="pw" placeholder="Mật khẩu" autocomplete="current-password" aria-label="Mật khẩu mở mô hình">
+      <button class="btn primary" id="btnUnlock">Mở khoá</button>
+    </div>
+    <div id="lkProg" class="hidden"><div class="prog"><i id="lkBar"></i></div><p class="pt" id="lkPct"></p></div>
+    <button class="btn hidden" id="lkRetry" style="margin-top:16px">Thử lại</button>
+  </section>
+
+  <!-- ============ TRANG ĐẦU ============ -->
+  <section id="home" class="home hidden">
+    <div class="intro">
+      <h1>Đọc điện tâm đồ từ một bức ảnh</h1>
+      <p>Chụp hoặc tải ảnh tờ ECG. Mô hình trả về điểm cho hơn một trăm nhãn, kèm bản đồ chú ý cho thấy nó dựa vào vùng nào của tờ giấy.</p>
+      <div class="paperdrop" id="drop">
+        <div class="dd"><b>Thả ảnh ECG vào đây</b><span>JPG, PNG hoặc HEIC, tối đa 30 MB<span class="paste-hint"> · hoặc dán bằng Ctrl/⌘ + V</span></span></div>
+        <div class="acts">
+          <button class="btn primary" id="btnPick"><svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Chọn ảnh</button>
+          <button class="btn cam-only" id="btnCam"><svg viewBox="0 0 24 24"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2A1 1 0 0 1 10.2 4h3.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.3"/></svg>Chụp bằng camera</button>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel">
+        <h3>Dùng như một ứng dụng</h3>
+        <p style="font-size:14px;color:var(--ink2)">Mở bằng Chrome (Android) hoặc Safari (iPhone) rồi chọn <b>Thêm vào màn hình chính</b>. Sau lần đầu, ứng dụng chạy được cả khi không có mạng.</p>
+      </div>
+      <div class="panel">
+        <h3>Để kết quả đáng tin hơn</h3>
+        <ul class="how">
+          <li>Chụp ngang, thấy trọn tờ giấy và cả lưới ô vuông.</li>
+          <li>Đủ sáng, tránh bóng đổ và chói đèn lên giấy.</li>
+          <li>Giữ máy song song với mặt giấy, cố định khi bấm chụp.</li>
+          <li>Giấy phẳng; nếp gấp làm lệch hình học sóng.</li>
+        </ul>
+      </div>
+      <div class="panel hidden" id="histCard">
+        <h3>Gần đây<button class="link sub" id="clearHist">Xoá lịch sử</button></h3>
+        <div class="hist" id="hist"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ XEM TRƯỚC ============ -->
+  <section id="preview" class="pv hidden">
+    <div class="pvimg"><img id="pvImg" alt="Ảnh ECG đã chọn"></div>
+    <div>
+      <h2>Kiểm tra ảnh trước khi phân tích</h2>
+      <ul class="checks" id="pvChecks"></ul>
+      <div class="btnrow" style="margin-bottom:14px">
+        <button class="btn sm" id="rotL">Xoay trái</button>
+        <button class="btn sm" id="rotR">Xoay phải</button>
+      </div>
+      <div class="btnrow">
+        <button class="btn primary" id="btnGo">Phân tích ECG</button>
+        <button class="btn" id="btnBack1">Chọn ảnh khác</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ĐANG PHÂN TÍCH ============ -->
+  <section id="loading" class="load hidden" aria-live="polite">
+    <svg viewBox="0 0 600 84" preserveAspectRatio="none"><path d="M0 44 L90 44 L104 44 L114 32 L126 44 L190 44 L202 52 L216 6 L230 78 L242 44 L310 44 L330 30 L354 44 L430 44 L442 52 L456 6 L470 78 L482 44 L560 44 L578 30 L600 44"/></svg>
+    <h2>Đang đọc điện tâm đồ</h2>
+    <p id="ldMsg">Nhận diện khổ giấy và chấm điểm các nhãn.</p>
+  </section>
+
+  <!-- ============ KẾT QUẢ ============ -->
+  <section id="result" class="hidden">
+    <div class="printhead"><b>ECG Insight</b> · Báo cáo phân tích từ ảnh · <span id="phMeta"></span></div>
+    <div class="rhead">
+      <div><h1>Kết quả phân tích</h1><div class="meta" id="rMeta"></div></div>
+      <div class="acts">
+        <button class="btn sm" id="btnPrint">In / lưu PDF</button>
+        <button class="btn sm" id="btnJson">Tải JSON</button>
+        <button class="btn sm primary" id="btnAgain">Phân tích ảnh khác</button>
+      </div>
+    </div>
+    <div class="impr" id="impr"></div>
+
+    <div class="main">
+      <aside class="sheet">
+        <div class="tools">
+          <div class="seg" id="seg" role="group" aria-label="Chế độ xem">
+            <button data-m="heat" class="on">Bản đồ chú ý</button>
+            <button data-m="view">Ảnh mô hình thấy</button>
+            <button data-m="orig">Ảnh gốc</button>
+          </div>
+          <div class="sp"></div>
+          <label id="paperWrap"><input type="checkbox" id="paperChk"> Làm tối ngoài khổ giấy</label>
+          <label id="alphaWrap">Độ đậm <input type="range" id="alpha" min="10" max="100" value="80" aria-label="Độ đậm bản đồ chú ý"></label>
+        </div>
+        <div class="viewer" id="viewer" title="Bấm để phóng to"><img id="vImg" alt="Ảnh ECG"><img class="ov heat" id="vHeat" alt=""><img class="ov" id="vPaper" alt=""></div>
+        <div class="cap" id="cap"></div>
+      </aside>
+
+      <div class="ladder">
+        <div class="lt">
+          <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input id="q" type="search" placeholder="Tìm nhãn: rung nhĩ, block nhánh, ST…" aria-label="Tìm nhãn"></div>
+          <div class="seg" id="fSeg" role="group" aria-label="Phạm vi nhãn"><button data-f="hi" class="on">Nổi bật</button><button data-f="all">Tất cả</button></div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <p class="count" id="count"></p>
+        <div class="axis"><div>Nhãn</div><div class="ax"><span style="left:0">0</span><span style="left:30%">30</span><span style="left:50%">50</span><span style="left:100%">100</span></div><div></div></div>
+        <ul class="rows" id="rows"></ul>
+      </div>
+    </div>
+
+    <div class="lower">
+      <div>
+        <h2>Chất lượng ảnh</h2>
+        <div class="qhead"><b id="qNum">–</b><span>/ 100 · khổ giấy ECG chiếm <span id="qPaper">–</span> ảnh</span></div>
+        <ul class="ql" id="qList"></ul>
+      </div>
+      <div class="notes">
+        <h2>Cách đọc các con số</h2>
+        <p>Điểm 0–100 là đầu ra của mô hình, <b>chưa hiệu chỉnh thành xác suất mắc bệnh</b>. Từ 50 trở lên là mức cao, 30–50 là mức trung bình.</p>
+        <p>Độ tin cậy của từng nhãn là AUROC khi kiểm tra trên ảnh giả chụp. Nhãn có AUROC thấp, hoặc ít ca khi kiểm tra, nên đọc thận trọng.</p>
+        <p>Mô hình được huấn luyện trên ảnh ECG do máy vẽ từ dữ liệu công khai, chưa được kiểm chứng trên ảnh chụp thực tế tại bệnh viện. Chỉ dùng cho nghiên cứu, không dùng để quyết định điều trị.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ KHÔNG THẤY ECG ============ -->
+  <section id="rejected" class="rej hidden">
+    <h1>Không nhận ra tờ điện tâm đồ trong ảnh</h1>
+    <p id="rejTxt"></p>
+    <div class="pic"><img id="rejImg" alt="Ảnh đã chọn"></div>
+    <p>Hãy chụp lại sao cho tờ ECG chiếm phần lớn khung hình, nằm ngang, đủ sáng và thấy rõ lưới ô vuông.</p>
+    <div class="btnrow" style="margin-top:18px"><button class="btn primary" id="btnRetry">Chọn ảnh khác</button></div>
+  </section>
+
+  <footer>
+    ECG Insight chỉ dùng cho nghiên cứu, không phải thiết bị y tế và không thay thế việc đọc ECG của bác sĩ. Ảnh được xử lý ngay trong trình duyệt của bạn và không được gửi đi đâu.
+  </footer>
+</main>
+
+<input type="file" id="fPick" accept="image/*,.heic,.heif" hidden>
+<input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+
+<dialog id="about">
+  <div class="dh"><h2>Về mô hình</h2><button class="iconbtn" id="aboutClose">Đóng</button></div>
+  <div class="db" id="aboutBody"><p>Mở khoá mô hình để xem thông tin chi tiết.</p></div>
+</dialog>
+<dialog id="zoom" class="zoom">
+  <div class="dh"><h2 id="zTitle" style="flex:1;font-size:15px;font-weight:600">Phóng to</h2><button class="iconbtn" id="zClose" style="background:transparent;color:#fff;border-color:#35495e">Đóng</button></div>
+  <div class="zs"><div class="zb"><img id="zImg" alt=""><img class="ov" id="zHeat" alt=""><img class="ov" id="zPaper" alt=""></div></div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="ort/ort.all.min.js"></script>
+<script src="engine.js"></script>
+<script src="vault.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const vn = (n, d=2) => Number(n).toFixed(d).replace('.', ',');
+const pct = v => Math.round(v * 100);
+const S = {labels:null, cats:[], info:null, cur:null, sel:null, mode:'heat', filter:'hi', cat:'all', q:'', open:new Set(),
+           bmp:null, rot:0, blob:null, srcUrl:null, hist:[]};
+const GROUP_VI = {MI:'nhồi máu cơ tim', STTC:'thay đổi ST–T', CD:'rối loạn dẫn truyền', HYP:'phì đại / dày buồng tim'};
+
+function show(id){
+  for (const s of ['lock','home','preview','loading','result','rejected']) $('#'+s).classList.toggle('hidden', s !== id);
+  window.scrollTo({top:0});
+}
+function toast(t, ms=3600){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('on'), ms); }
+const BENIGN = new Set(['sup_NORM','sub_NORM','scp_NORM','scp_SR']);   // nhãn "bình thường": cao là điều tốt, không tô đỏ
+function tone(key, v){
+  if (BENIGN.has(key)) return v >= .5 ? 'var(--ok)' : 'var(--low)';
+  return v >= .5 ? 'var(--high)' : v >= .3 ? 'var(--mid)' : 'var(--low)';
+}
+
+/* ---------- giao diện sáng/tối ---------- */
+function applyTheme(t){ if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); }
+try { applyTheme(localStorage.getItem('ecgi.theme')); } catch(e) {}
+$('#btnTheme').onclick = () => {
+  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const cur = document.documentElement.getAttribute('data-theme') || (dark ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark'; applyTheme(next);
+  try { localStorage.setItem('ecgi.theme', next); } catch(e) {}
+};
+$('#brand').onclick = () => { show('home'); renderHistory(); };
+
+/* ---------- khởi động: dịch vụ nền, mô hình, mật khẩu ---------- */
+const fmtDate = ms => new Date(ms).toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'});
+const lock = (title, msg, o = {}) => { show('lock'); $('#lkTitle').textContent = title; $('#lkMsg').textContent = msg;
+  $('#lkForm').classList.toggle('hidden', !o.form); $('#lkProg').classList.toggle('hidden', !o.prog); $('#lkRetry').classList.toggle('hidden', !o.retry); };
+async function registerSW(){
+  if (!('serviceWorker' in navigator)) return;
+  try { await navigator.serviceWorker.register('sw.js'); await navigator.serviceWorker.ready;
+    if (!self.crossOriginIsolated && !sessionStorage.getItem('coiReload')) { sessionStorage.setItem('coiReload', '1'); location.reload(); return new Promise(() => {}); } } catch(e) { console.warn('SW', e); }
+}
+async function startModel(bytes, meta){
+  S.bytes = bytes; S.meta = meta;
+  lock('Đang nạp mô hình', 'Chuẩn bị mô hình trong thiết bị của bạn (vài giây).');
+  try {
+    let useGpu = false; try { useGpu = localStorage.getItem('ecgi.gpu') === '1'; } catch(e) {}
+    const be = await Engine.loadModel(bytes, useGpu);
+    if (useGpu && Engine.gpuFailed) toast('GPU không dùng được trên thiết bị này, đã chuyển sang CPU.', 4500);
+    const c = Engine.cfg; S.labels = c.labels; S.cats = c.cats;
+    S.info = {n_labels:c.cols.length, size:[c.W, c.H], gate:c.gate, device:be + (self.crossOriginIsolated ? '' : ' (chưa bật đa luồng)'), expiry:meta && meta.expiry, gpu:useGpu};
+    $('#statusTxt').textContent = `ECGNetX · ${c.cols.length} nhãn`;
+    fillAbout(); show('home'); renderHistory();
+  } catch(e) { console.error(e); lock('Không nạp được mô hình', 'Lỗi: ' + (e.message || e) + '. Thử tải lại trang hoặc tắt tăng tốc GPU.', {retry:true}); }
+}
+async function boot(){
+  try { Engine.setConfig(await (await fetch('config.json')).json()); } catch(e) { return lock('Thiếu tệp cấu hình', 'Không đọc được config.json.', {retry:true}); }
+  const st = await Vault.status();
+  if (st.state === 'ready') return startModel(st.bytes, st);
+  if (st.state === 'need-password') return lock('Nhập mật khẩu', 'Cần mật khẩu để mở mô hình (chỉ lần đầu hoặc khi đổi mật khẩu). Hạn dùng bản này: ' + fmtDate(st.header.expiry) + '.', {form:true});
+  if (st.state === 'expired') return lock('Bản mô hình đã hết hạn', 'Hãy xin chủ ứng dụng bản mới (mật khẩu mới), rồi tải lại trang.', {retry:true});
+  lock('Chưa có mô hình trên thiết bị', `Lần đầu cần kết nối mạng để tải mô hình (~${Math.round(Engine.cfg.model_mb)} MB), sau đó dùng offline được.`, {retry:true});
+}
+$('#lkRetry').onclick = () => location.reload();
+$('#btnUnlock').onclick = async () => {
+  const pw = $('#pw').value; if (!pw) return toast('Nhập mật khẩu trước.');
+  $('#btnUnlock').disabled = true; $('#lkProg').classList.remove('hidden');
+  try {
+    const r = await Vault.unlock(pw, (f, g, t, ph) => { $('#lkBar').style.width = (f * 100) + '%'; $('#lkPct').textContent = ph === 'decrypt' ? 'Đang giải mã…' : `Đang tải ${(g / 1e6).toFixed(1)} MB`; }, Engine.cfg.model_mb);
+    $('#pw').value = ''; await startModel(r.bytes, r);
+  } catch(e) { $('#lkProg').classList.add('hidden'); toast(e.code === 'badpass' ? 'Sai mật khẩu, thử lại.' : (e.message || 'Lỗi không rõ'), 4500); }
+  finally { $('#btnUnlock').disabled = false; }
+};
+$('#pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnUnlock').click(); });
+
+function fillAbout(){
+  const i = S.info; if (!i) return;
+  const kinds = {sup:0, sub:0, scp:0, sn:0}; Object.keys(S.labels).forEach(k => kinds[k.split('_')[0]]++);
+  $('#aboutBody').innerHTML = `
+   <h3>Mô hình</h3><p>ECGNetX: DenseNet-121 đọc ảnh ECG, thêm nhánh nhận diện khổ giấy để bản đồ chú ý không lan ra ngoài tờ giấy. Ảnh vào được co về ${i.size[0]}×${i.size[1]} px.</p>
+   <h3>${i.n_labels} nhãn</h3><ul><li>${kinds.sup} nhóm lớn và ${kinds.sub} nhóm phụ của PTB-XL</li><li>${kinds.scp} phát biểu SCP-ECG của PTB-XL</li><li>${kinds.sn} nhãn SNOMED CT từ CPSC 2018, Georgia, Chapman-Shaoxing và Ningbo</li></ul>
+   <h3>Kiểm tra</h3><p>Macro AUROC khoảng 0,93 trên PTB-XL fold 10 (ảnh giả chụp, nhiều bố cục). Các bộ ngoài thấp hơn, trung bình 0,87–0,94 tuỳ bộ. 27 nhãn quá hiếm nên chưa đánh giá được.</p>
+   <h3>Cổng “không phải ECG”</h3><p>Ảnh có tỷ lệ giấy ECG dưới ${vn(i.gate,3)} sẽ bị từ chối. Ngưỡng này chỉnh trên ảnh không-ECG do máy tạo, nên có thể chưa chuẩn với ảnh thật.</p>
+   <h3>Giới hạn</h3><ul><li>Huấn luyện trên ảnh vẽ từ tín hiệu công khai, chưa kiểm chứng trên ảnh chụp thực tế.</li><li>“Nhồi máu cơ tim” theo nhãn PTB-XL không đồng nghĩa với tắc động mạch vành cấp (OMI).</li><li>Điểm số chưa hiệu chỉnh thành xác suất.</li></ul>
+   <h3>Trên thiết bị này</h3><p>Chạy bằng ${esc(i.device)}.${i.expiry ? ' Bản mô hình hết hạn ngày ' + fmtDate(i.expiry) + '.' : ''} Ảnh chỉ được xử lý trong trình duyệt, không gửi đi đâu.</p>
+   <p><label style="cursor:pointer"><input type="checkbox" id="gpu" ${i.gpu ? 'checked' : ''}> Thử tăng tốc bằng GPU (thử nghiệm)</label></p>
+   <p><button class="link" id="forget">Xoá mô hình khỏi thiết bị này</button></p>`;
+  $('#gpu').onchange = async e => { try { localStorage.setItem('ecgi.gpu', e.target.checked ? '1' : '0'); } catch(_) {} if (S.bytes) { Engine.gpuFailed = false; $('#about').close(); toast('Đang nạp lại mô hình…', 2000); await startModel(S.bytes, S.meta); } };
+  $('#forget').onclick = async () => { if (!confirm('Xoá mô hình khỏi thiết bị này? Lần sau phải nhập lại mật khẩu.')) return; await Vault.forget(); location.reload(); };
+}
+$('#btnAbout').onclick = () => $('#about').showModal();
+$('#aboutClose').onclick = () => $('#about').close();
+$('#about').addEventListener('click', e => { if (e.target.id === 'about') e.target.close(); });
+
+/* ---------- chọn ảnh ---------- */
+$('#btnPick').onclick = () => $('#fPick').click();
+$('#btnCam').onclick = () => $('#fCam').click();
+for (const id of ['#fPick','#fCam']) $(id).onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) loadFile(f); };
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('on'); }));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('on'); }));
+document.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+document.addEventListener('paste', e => { for (const it of (e.clipboardData||{}).items || []) if (it.type.startsWith('image/')) { loadFile(it.getAsFile()); break; } });
+
+async function loadFile(f){
+  S.rot = 0;
+  try { S.bmp = await createImageBitmap(f, {imageOrientation:'from-image'}); } catch(e) { S.bmp = null; }
+  if (!S.bmp) { S.blob = f; $('#pvImg').src = URL.createObjectURL(f); S.srcUrl = $('#pvImg').src; preChecks(null); show('preview'); return; }
+  await renderPreview(); show('preview');
+}
+async function renderPreview(){
+  const b = S.bmp, r = ((S.rot % 4) + 4) % 4, swap = r % 2 === 1;
+  const k = Math.min(1, 2600 / Math.max(b.width, b.height));
+  const w = Math.round(b.width * k), h = Math.round(b.height * k);
+  const cv = document.createElement('canvas'); cv.width = swap ? h : w; cv.height = swap ? w : h;
+  const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height);
+  c.translate(cv.width/2, cv.height/2); c.rotate(r * Math.PI/2); c.drawImage(b, -w/2, -h/2, w, h);
+  S.blob = await new Promise(res => cv.toBlob(res, 'image/jpeg', 0.92));
+  if (S.srcUrl) URL.revokeObjectURL(S.srcUrl);
+  S.srcUrl = URL.createObjectURL(S.blob); $('#pvImg').src = S.srcUrl;
+  preChecks({w:cv.width, h:cv.height});
+}
+function preChecks(d){
+  const li = (lv, t) => `<li><span class="dot" style="background:var(--${lv})"></span><span>${t}</span></li>`;
+  const out = [];
+  if (!d) out.push(li('low', 'Trình duyệt không đọc được thông số ảnh; ảnh sẽ được gửi nguyên bản.'));
+  else {
+    out.push(d.h > d.w * 1.1 ? li('mid', `Ảnh đang nằm dọc (${d.w}×${d.h}). ECG thường nằm ngang; hãy xoay ảnh.`) : li('ok', `Ảnh nằm ngang (${d.w}×${d.h}).`));
+    out.push(Math.min(d.w, d.h) < 500 ? li('mid', 'Độ phân giải thấp, chi tiết sóng có thể mất.') : li('ok', 'Độ phân giải đủ dùng.'));
+  }
+  out.push(li('low', 'Độ nét, độ sáng và khổ giấy sẽ được kiểm tra sau khi phân tích.'));
+  $('#pvChecks').innerHTML = out.join('');
+}
+$('#rotL').onclick = async () => { if (S.bmp) { S.rot--; await renderPreview(); } else toast('Trình duyệt này chưa hỗ trợ xoay ảnh.'); };
+$('#rotR').onclick = async () => { if (S.bmp) { S.rot++; await renderPreview(); } else toast('Trình duyệt này chưa hỗ trợ xoay ảnh.'); };
+$('#btnBack1').onclick = () => { show('home'); renderHistory(); };
+$('#btnAgain').onclick = () => { show('home'); renderHistory(); };
+$('#btnRetry').onclick = () => { show('home'); renderHistory(); };
+
+/* ---------- phân tích ---------- */
+$('#btnGo').onclick = async () => {
+  show('loading'); const t0 = Date.now();
+  const tick = setInterval(() => { $('#ldMsg').textContent = `Nhận diện khổ giấy và chấm điểm các nhãn… ${Math.floor((Date.now()-t0)/1000)} giây`; }, 500);
+  try {
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));   // cho màn hình "đang đọc" kịp hiện
+    const res = await Engine.analyze(S.blob); res.thumb = await makeThumb(S.srcUrl);
+    clearInterval(tick); if (!res.rejected) saveHistory(res); showResult(res);
+  } catch(e) { clearInterval(tick); console.error(e); show('preview'); toast(e.message || 'Không phân tích được ảnh.', 5200); }
+};
+function makeThumb(url){ return new Promise(res => { const im = new Image(); im.onload = () => { const w = 220, h = Math.round(w * im.height / im.width); const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(im, 0, 0, w, h); res(c.toDataURL('image/jpeg', .6)); }; im.onerror = () => res(''); im.src = url; }); }
+
+/* ---------- lịch sử ---------- */
+function getHist(){ try { return JSON.parse(localStorage.getItem('ecgi.h') || '[]'); } catch(e) { return []; } }
+function saveHistory(res){ try { const h = getHist(); h.unshift(res); localStorage.setItem('ecgi.h', JSON.stringify(h.slice(0, 8))); } catch(e) { try { localStorage.removeItem('ecgi.h'); } catch(_) {} } }
+function headline(res){ return res.impression.level === 'abnormal' ? 'Có nhóm vượt ngưỡng' : res.impression.level === 'normal' ? 'Gần bình thường' : 'Chưa chắc chắn'; }
+function renderHistory(){
+  const h = getHist(); S.hist = h; $('#histCard').classList.toggle('hidden', !h.length);
+  $('#hist').innerHTML = h.map((x, i) => {
+    const c = x.impression.level === 'abnormal' ? 'var(--high)' : x.impression.level === 'normal' ? 'var(--ok)' : 'var(--low)';
+    return `<button class="hrow" data-i="${i}"><img src="${x.thumb || ''}" alt=""><div><b><span class="dot" style="background:${c};margin-right:7px"></span>${esc(headline(x))}</b><span>${new Date(x.t).toLocaleString('vi-VN', {hour:'2-digit', minute:'2-digit', day:'2-digit', month:'2-digit'})}</span></div></button>`;
+  }).join('');
+  $$('.hrow').forEach(e => e.onclick = () => showResult(S.hist[+e.dataset.i], true));
+}
+$('#clearHist').onclick = () => { try { localStorage.removeItem('ecgi.h'); } catch(e) {} renderHistory(); };
+
+/* ---------- kết quả ---------- */
+function showResult(res, fromHist){
+  S.cur = res; S.fromHist = !!fromHist;
+  if (res.rejected) {
+    $('#rejTxt').textContent = `Mô hình chỉ thấy ${pct(res.paper_frac)}% khung hình là giấy ECG (cần ít nhất ${pct(res.gate)}%), nên không đưa ra kết quả để tránh đọc nhầm.`;
+    $('#rejImg').src = imgUrl(res.id, 'orig') || res.thumb || '';
+    show('rejected'); return;
+  }
+  show('result');
+  const d = new Date(res.t);
+  const meta = `Mã ${res.id.slice(0, 8)} · ${d.toLocaleString('vi-VN')} · ${vn(res.seconds, 1)} giây`;
+  $('#rMeta').textContent = meta; $('#phMeta').textContent = meta;
+  renderImpression(res);
+  S.mode = 'heat'; S.filter = 'hi'; S.cat = 'all'; S.q = ''; S.open = new Set(); $('#q').value = '';
+  $$('#seg button').forEach(b => b.classList.toggle('on', b.dataset.m === 'heat'));
+  $$('#fSeg button').forEach(b => b.classList.toggle('on', b.dataset.f === 'hi'));
+  renderChips(); renderRows(); renderQuality(res);
+  select(res.cam_default || Object.keys(res.scores)[0], true);
+}
+
+function renderImpression(res){
+  const im = res.impression, sc = res.scores, L = S.labels;
+  const top = (im.high || []).slice(0, 4).map(k => `${esc(L[k].vi)} (${pct(sc[k])})`).join(', ');
+  let hl, p = '', fine = '';
+  if (im.level === 'abnormal') {
+    const names = im.groups.map(g => GROUP_VI[g] || g);
+    hl = `Có dấu hiệu ${names.join(', ')}.`;
+    p = top ? `Nhãn chi tiết nổi bật: ${top}.` : 'Chưa có nhãn chi tiết nào vượt 50 điểm.';
+    if (im.groups.includes('MI')) fine = '“Nhồi máu cơ tim” theo nhãn PTB-XL, không đồng nghĩa với tắc động mạch vành cấp.';
+  } else if (im.level === 'normal') {
+    hl = 'Không có nhóm bệnh nào vượt ngưỡng; hình dạng sóng gần ECG bình thường.';
+    p = `Điểm “ECG bình thường” là ${pct(im.norm)}.` + (top ? ` Một số nhãn chi tiết vẫn đạt mức cao và nên xem lại: ${top}.` : '');
+  } else {
+    hl = 'Mô hình chưa đủ chắc chắn để kết luận.';
+    p = `Không nhóm nào vượt 50 điểm, và điểm “ECG bình thường” cũng chỉ ${pct(im.norm)}.` + (top ? ` Nhãn gần ngưỡng: ${top}.` : '');
+  }
+  $('#impr').className = 'impr ' + im.level;
+  $('#impr').innerHTML = `<div class="hl"><span class="bar"></span><span class="tx">${esc(hl)}</span></div><p>${p}</p>${fine ? `<p class="fine">${esc(fine)}</p>` : ''}`;
+}
+
+function renderChips(){
+  const cats = [{id:'all', vi:'Tất cả'}, ...S.cats];
+  $('#chips').innerHTML = cats.map(c => `<button class="chip ${S.cat === c.id ? 'on' : ''}" data-c="${c.id}">${esc(c.vi)}</button>`).join('');
+  $$('#chips .chip').forEach(b => b.onclick = () => { S.cat = b.dataset.c; renderChips(); renderRows(); });
+}
+$('#fSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.filter = b.dataset.f; $$('#fSeg button').forEach(x => x.classList.toggle('on', x === b)); renderRows(); };
+$('#q').oninput = e => { S.q = e.target.value.trim().toLowerCase(); renderRows(); };
+
+function rowHtml(k, v){
+  const m = S.labels[k], c = tone(k, v), sel = S.sel === k, open = S.open.has(k);
+  const aur = m.auroc != null ? `AUROC ${vn(m.auroc)}` : 'chưa đánh giá';
+  const rel = m.auroc != null
+    ? `<div class="rel">Độ tin cậy của mô hình với nhãn này: <b>${esc(m.rel_level)}</b> <span class="tag">AUROC ${vn(m.auroc)}</span> <span class="tag">${esc(m.rel_src)}</span>${m.few ? ' <span class="tag warn">ít ca khi kiểm tra</span>' : ''}</div>`
+    : `<div class="rel">Nhãn này quá hiếm trong dữ liệu kiểm tra nên <b>chưa đánh giá được độ tin cậy</b>; đọc rất thận trọng.</div>`;
+  return `<li class="row ${sel ? 'sel' : ''} ${open ? 'open' : ''}" data-k="${esc(k)}">
+    <button class="rtop" aria-expanded="${open}">
+      <span class="rname"><b>${esc(m.vi)}</b><small>${esc(m.code)} · ${esc(m.source)} · ${aur}</small></span>
+      <span class="sc"><i class="f" style="width:${pct(v)}%;background:${c}"></i><i class="t" style="left:30%"></i><i class="t" style="left:50%"></i></span>
+      <span class="rnum" style="color:${c}">${pct(v)}</span>
+    </button>
+    <div class="rmore">${esc(m.desc)}${rel}</div></li>`;
+}
+function renderRows(){
+  const r = S.cur; if (!r) return;
+  const L = S.labels, sc = r.scores;
+  const match = k => !S.q || (L[k].vi + ' ' + L[k].code + ' ' + L[k].source).toLowerCase().includes(S.q);
+  const sup = ['NORM','MI','STTC','CD','HYP'].map(c => 'sup_' + c).filter(k => k in sc && match(k));
+  let det = Object.keys(sc).filter(k => !k.startsWith('sup_') && !L[k].hidden && match(k) && (S.cat === 'all' || L[k].cat === S.cat));
+  const total = det.length;
+  let note = '';
+  if (S.filter === 'hi' && !S.q) {
+    const hi = det.filter(k => sc[k] >= .3);
+    if (hi.length) det = hi; else { det = det.sort((a, b) => sc[b] - sc[a]).slice(0, 5); note = 'Không nhãn chi tiết nào đạt 30 điểm; hiện 5 nhãn cao nhất.'; }
+  }
+  det.sort((a, b) => sc[b] - sc[a]);
+  $('#count').textContent = note || (S.filter === 'hi' && !S.q ? `${det.length} nhãn chi tiết từ 30 điểm trở lên, trên tổng ${total}` : `${det.length} nhãn chi tiết`);
+  let html = '';
+  if (sup.length && S.cat === 'all') html += `<li class="gh">Năm nhóm lớn</li>` + sup.sort((a, b) => a === 'sup_NORM' ? -1 : b === 'sup_NORM' ? 1 : sc[b] - sc[a]).map(k => rowHtml(k, sc[k])).join('');
+  for (const c of S.cats) {
+    const items = det.filter(k => L[k].cat === c.id);
+    if (items.length) html += `<li class="gh">${esc(c.vi)}</li>` + items.map(k => rowHtml(k, sc[k])).join('');
+  }
+  $('#rows').innerHTML = html || '<li class="empty">Không có nhãn nào khớp. Thử bỏ bộ lọc hoặc chọn “Tất cả”.</li>';
+  $$('#rows .row').forEach(li => li.querySelector('.rtop').onclick = () => {
+    const k = li.dataset.k; S.open.has(k) && S.sel === k ? S.open.delete(k) : S.open.add(k); select(k); renderRowsKeep();
+  });
+}
+function renderRowsKeep(){ const y = window.scrollY; renderRows(); window.scrollTo({top:y}); }
+
+/* ---------- bản đồ chú ý ---------- */
+function select(key, quiet){
+  S.sel = key; S.mode = S.mode === 'heat' || quiet ? 'heat' : S.mode;
+  $$('#seg button').forEach(b => b.classList.toggle('on', b.dataset.m === S.mode));
+  $$('#rows .row').forEach(li => li.classList.toggle('sel', li.dataset.k === key));
+  setView();
+}
+const imgUrl = (id, kind) => { const rt = Engine.rt.get(id); return rt ? rt.urls[kind] : null; };
+async function setView(){
+  const r = S.cur, m = S.labels[S.sel], vi = $('#vImg'), vh = $('#vHeat'), vp = $('#vPaper'), cap = $('#cap');
+  const live = Engine.rt.has(r.id), heat = live && S.mode === 'heat' && !!S.sel;
+  $('#alphaWrap').classList.toggle('hidden', !heat);
+  $('#paperWrap').classList.toggle('hidden', S.mode === 'orig' || !live);
+  if (!live) {
+    vi.src = r.thumb || ''; vh.classList.add('hidden'); vp.classList.add('hidden');
+    cap.textContent = 'Ảnh gốc và bản đồ chú ý chỉ có trong phiên vừa phân tích. Đây là ảnh thu nhỏ lưu trong lịch sử.'; return;
+  }
+  vi.src = imgUrl(r.id, S.mode === 'orig' ? 'orig' : 'view');
+  vh.classList.toggle('hidden', !heat);
+  const paper = $('#paperChk').checked && S.mode !== 'orig';
+  vp.classList.toggle('hidden', !paper); if (paper) vp.src = await Engine.paper(r.id);
+  if (heat) {
+    const key = S.sel, cur = r.id;
+    cap.innerHTML = '<span class="busy">Đang tạo bản đồ chú ý…</span>'; vh.style.opacity = 0;
+    await new Promise(res => setTimeout(res, 30));
+    const u = await Engine.cam(r.id, key);
+    if (S.sel !== key || !S.cur || S.cur.id !== cur || S.mode !== 'heat') return;
+    vh.onload = () => { vh.style.opacity = $('#alpha').value / 100; cap.innerHTML = `Đang xem: <b>${esc(m.vi)}</b> · ${pct(r.scores[S.sel])} điểm <span class="scalebar"><span>ít</span><i></i><span>nhiều chú ý</span></span>`; };
+    vh.src = u;
+  } else cap.textContent = S.mode === 'view' ? `Đúng như mô hình nhìn thấy: ảnh co về ${S.info.size.join('×')} px, nền trắng.` : 'Ảnh gốc bạn tải lên.';
+}
+$('#seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.mode = b.dataset.m; $$('#seg button').forEach(x => x.classList.toggle('on', x === b)); setView(); };
+$('#alpha').oninput = () => { $('#vHeat').style.opacity = $('#alpha').value / 100; $('#zHeat').style.opacity = $('#alpha').value / 100; };
+$('#paperChk').onchange = setView;
+
+/* ---------- phóng to ---------- */
+$('#viewer').onclick = () => {
+  if (!S.cur) return;
+  $('#zImg').src = $('#vImg').src; const h = !$('#vHeat').classList.contains('hidden'), p = !$('#vPaper').classList.contains('hidden');
+  $('#zHeat').classList.toggle('hidden', !h); if (h) { $('#zHeat').src = $('#vHeat').src; $('#zHeat').style.opacity = $('#alpha').value / 100; }
+  $('#zPaper').classList.toggle('hidden', !p); if (p) $('#zPaper').src = $('#vPaper').src;
+  $('#zTitle').textContent = S.mode === 'heat' ? 'Bản đồ chú ý: ' + S.labels[S.sel].vi : 'Phóng to';
+  $('#zoom').showModal();
+};
+$('#zClose').onclick = () => $('#zoom').close();
+
+/* ---------- chất lượng ảnh ---------- */
+function renderQuality(res){
+  const q = res.quality; $('#qNum').textContent = q.score; $('#qPaper').textContent = pct(res.paper_frac) + '%';
+  $('#qList').innerHTML = q.items.map(n => `<li><b><span class="dot" style="background:var(--${n.level === 'bad' ? 'high' : n.level === 'warn' ? 'mid' : n.level === 'ok' ? 'ok' : 'low'})"></span>${esc(n.title)}</b><span>${esc(n.text)}</span></li>`).join('');
+}
+
+/* ---------- xuất ---------- */
+$('#btnPrint').onclick = () => window.print();
+$('#btnJson').onclick = () => {
+  const r = S.cur; if (!r) return;
+  const out = {id:r.id, time:new Date(r.t).toISOString(), impression:r.impression, paper_frac:r.paper_frac, quality:r.quality,
+               scores:Object.fromEntries(Object.entries(r.scores).sort((a, b) => b[1] - a[1]).map(([k, v]) => [k, {diem:pct(v), ten:S.labels[k].vi, auroc:S.labels[k].auroc}])),
+               luu_y:'Điểm chưa hiệu chỉnh thành xác suất. Chỉ dùng cho nghiên cứu.'};
+  const a = document.createElement('a'); a.download = `ecg-insight-${r.id.slice(0, 8)}.json`;
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 1)], {type:'application/json'})); a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+};
+
+renderHistory();
+registerSW().then(boot);
+</script>
+</body>
+</html>
